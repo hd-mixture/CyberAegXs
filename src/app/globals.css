@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 218 14% 15%;
+    --foreground: 210 20% 98%;
+    --card: 218 14% 12%;
+    --card-foreground: 210 20% 98%;
+    --popover: 218 14% 12%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 207 82% 72%;
+    --primary-foreground: 218 14% 10%;
+    --secondary: 218 14% 20%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 218 14% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 189 100% 61%;
+    --accent-foreground: 218 14% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 218 14% 25%;
+    --input: 218 14% 25%;
+    --ring: 189 100% 61%;
+    --radius: 0.75rem;
+    --chart-1: 207 82% 72%;
+    --chart-2: 189 100% 61%;
+    --chart-3: 199 89% 48%;
+    --chart-4: 175 70% 41%;
+    --chart-5: 204 94% 28%;
+  }
+
+  .dark {
+    --background: 218 14% 10%;
+    --foreground: 210 20% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+}
+
+.cyber-glow {
+  box-shadow: 0 0 15px -3px hsl(var(--primary) / 0.3), 0 0 6px -2px hsl(var(--primary) / 0.1);
+}
+
+.accent-glow {
+  box-shadow: 0 0 20px -5px hsl(var(--accent) / 0.4);
+}
+
+/* Custom Scrollbar for Cyber Aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/50;
+}
+
+/* Custom transitions for better visibility */
+.button-cyber-hover {
+  @apply transition-all duration-200 hover:brightness-125 hover:shadow-lg active:scale-[0.98];
+}
+
+/* --- LOGO SHINE ANIMATION --- */
+@keyframes shine-sweep {
+  0% { left: -100%; }
+  25% { left: 150%; }
+  100% { left: 150%; }
+}
+
+.logo-container-shine {
+  position: relative;
+  overflow: hidden;
+  /* Use mask to clip the shimmer only to the image pixels */
+  -webkit-mask-image: url('/CyberAegXs%20Logo.png');
+  mask-image: url('/CyberAegXs%20Logo.png');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.logo-container-shine::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  animation: shine-sweep 4s infinite ease-in-out;
+}

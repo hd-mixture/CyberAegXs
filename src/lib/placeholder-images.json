@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "scanner-hero",
+      "description": "High-tech document scanning illustration",
+      "imageUrl": "https://picsum.photos/seed/cyber-scan/800/600",
+      "imageHint": "cyber scanner"
+    },
+    {
+      "id": "pdf-dashboard",
+      "description": "Clean modern dashboard interface",
+      "imageUrl": "https://picsum.photos/seed/dashboard/800/600",
+      "imageHint": "modern interface"
+    }
+  ]
+}

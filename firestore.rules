@@ -1,0 +1,109 @@
+/**
+ * CyberAegXs Firestore Security Rules
+ *
+ * CORE PHILOSOPHY:
+ * This ruleset implements a strict User-Ownership model. Access to data is primarily determined 
+ * by the authenticated user's ID matching the document path and internal ownership fields.
+ *
+ * DATA STRUCTURE:
+ * - /users/{userId}: Root user profile.
+ * - /users/{userId}/documents/{docId}: Private PDF metadata and processing state.
+ * - /users/{userId}/transactions/{transId}: Private payment and subscription history.
+ * - /subscriptionPlans/{planId}: Publicly readable plan definitions (Basic, Advanced, Premium).
+ *
+ * KEY SECURITY DECISIONS:
+ * - Authorization Independence: We enforce that the `userId` in the path matches the `userId` 
+ *   within the document data. This allows for fast, atomic authorization checks without extra lookups.
+ * - Public Read: Subscription plans are public to allow unauthenticated users to view pricing.
+ * - Restricted Writes: Global configurations like SubscriptionPlans are read-only for standard users.
+ * - Relational Integrity: On creation, we ensure documents are correctly linked to the owner's UID.
+ * - Immutability: Critical relational fields (like 'userId' or 'id') are immutable after creation.
+ *
+ * PROTOTYPING MODE:
+ * These rules focus on strict authorization (who can access what) while remaining flexible 
+ * on data schemas (field types and optionality) to facilitate rapid development iteration.
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /** Checks if the request is coming from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Verifies ownership and ensures the document exists for state-changing operations. */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for the User profile collection.
+     * @path /users/{userId}
+     * @allow (get, list) if the user is accessing their own profile.
+     * @allow (create) if the user's UID matches the document ID and the 'id' field.
+     * @deny (create) if a user tries to create a profile for a different UID.
+     * @principle Restricts access to a user's own data tree and validates path consistency.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for PDF documents owned by a specific user.
+       * @path /users/{userId}/documents/{documentId}
+       * @allow (get, list) if the user owns the parent path.
+       * @allow (create) if the user is the owner and the internal 'userId' field matches.
+       * @deny (update) if the user tries to change the 'userId' ownership field.
+       * @principle Enforces document ownership via path and denormalized field consistency.
+       */
+      match /documents/{documentId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for payment and subscription transactions.
+       * @path /users/{userId}/transactions/{transactionId}
+       * @allow (get, list) if the user owns the parent path.
+       * @allow (create) if the transaction is linked to the authenticated user.
+       * @deny (create) if the user attempts to log a transaction for another user.
+       * @principle Ensures private financial data is only accessible to the transaction initiator.
+       */
+      match /transactions/{transactionId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    /**
+     * @description Rules for globally available subscription plans.
+     * @path /subscriptionPlans/{planId}
+     * @allow (get, list) for any user, including guests.
+     * @deny (create, update, delete) for standard users.
+     * @principle Publicly readable configuration data with restricted write access.
+     */
+    match /subscriptionPlans/{planId} {
+      allow get, list: if true;
+      // CRITICAL: Write access is restricted to administrators only. 
+      // Admin logic is not defined in the current IR, so writes are blocked for all standard users.
+      allow create, update, delete: if false; // TODO: Add admin role validation once defined.
+    }
+  }
+}
